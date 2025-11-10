@@ -1,6 +1,7 @@
 import os, time, json, requests
-from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi import Request
 from fastapi.responses import JSONResponse, PlainTextResponse
+
 
 app = FastAPI()
 
@@ -17,8 +18,14 @@ def root():
     return {"status": "ok", "message": "Garmin–Strava–ChatGPT bot is running!"}
 
 @app.get("/strava/webhook")
-def verify(hub_mode: str = None, hub_verify_token: str = None, hub_challenge: str = None):
-    return {"hub.challenge": hub_challenge}
+def verify(request: Request):
+    # корректно достаём challenge-параметр, Strava использует точку в имени
+    challenge = (
+        request.query_params.get("hub.challenge")
+        or request.query_params.get("hub_challenge")
+        or request.query_params.get("challenge")
+    )
+    return JSONResponse({"hub.challenge": challenge or ""}, status_code=200)
 
 @app.post("/strava/webhook")
 async def webhook(req: Request, background_tasks: BackgroundTasks):
@@ -29,6 +36,10 @@ async def webhook(req: Request, background_tasks: BackgroundTasks):
         background_tasks.add_task(process_activity, owner_id, activity_id)
     return {"ok": True}
 
+# (необязательно) чтобы не было 405 в логах от health-проверок
+@app.head("/")
+def root_head():
+    return PlainTextResponse("", status_code=200)
 @app.get("/strava/oauth/callback")
 def oauth_callback(code: str):
     r = requests.post(STRAVA_TOKEN_URL, data={
