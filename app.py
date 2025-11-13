@@ -77,8 +77,8 @@ async def webhook(req: Request, background_tasks: BackgroundTasks):
           f"owner={owner_id} activity={activity_id}")
 
     if object_type == "activity" and aspect_type in ("create", "update"):
-        print("[WEBHOOK] queue process_activity")
-        background_tasks.add_task(process_activity, owner_id, activity_id)
+        print("[WEBHOOK] DIRECT call process_activity (debug mode)")
+        process_activity(owner_id, activity_id)
     else:
         print("[WEBHOOK] not activity/create/update — skip")
 
