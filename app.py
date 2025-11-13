@@ -176,18 +176,3 @@ def process_activity(athlete_id: int, activity_id: int):
     except Exception as e:
         print("PROCESS ERROR:", e)
 
-
-# (опционально) план на неделю ручным вызовом
-@app.get("/plan/weekly")
-def weekly_plan():
-    if not TOKENS:
-        return PlainTextResponse("Нет подключённого атлета (пройди OAuth)", status_code=400)
-    athlete_id = list(TOKENS.keys())[0]
-    token = get_access_token(athlete_id)
-    headers = {"Authorization": f"Bearer {token}"}
-    acts = requests.get(f"{STRAVA_API}/athlete/activities", headers=headers, params={"per_page": 50}).json()
-    week = summarize_week(acts)
-    prompt = f"Составь план на следующую неделю под цель: {os.getenv('COACH_GOAL','цель не указана')}. Исходные данные: {week}"
-    advice = ask_openai(prompt)
-    send_tg("📅 План на неделю:\n" + advice)
-    return PlainTextResponse("План отправлен в Telegram ✅")
