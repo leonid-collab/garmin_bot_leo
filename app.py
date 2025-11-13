@@ -272,7 +272,7 @@ def ask_openai(prompt: str) -> str:
                 "Content-Type": "application/json",
             },
             json={
-                "model": "gpt-5.1-mini",
+                "model": "gpt-5.1",
                 "input": prompt,
             },
             timeout=30,
