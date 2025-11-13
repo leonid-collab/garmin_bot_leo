@@ -30,6 +30,7 @@ def verify(request: Request):
 @app.post("/strava/webhook")
 async def webhook(req: Request, background_tasks: BackgroundTasks):
     payload = await req.json()
+    print("WEBHOOK PAYLOAD:", payload)
     if payload.get("object_type") == "activity" and payload.get("aspect_type") in ("create","update"):
         owner_id = payload.get("owner_id")
         activity_id = payload.get("object_id")
@@ -71,6 +72,16 @@ def get_access_token(athlete_id: int):
     return t["access"]
 
 def process_activity(athlete_id: int, activity_id: int):
+    def process_activity(athlete_id: int, activity_id: int):
+    try:
+        print(f"PROCESS START owner={athlete_id} activity={activity_id}")
+        token = get_access_token(athlete_id)
+    except KeyError:
+        print(f"SKIP: нет токена для owner={athlete_id}. Пройди OAuth.")
+        return
+    except Exception as e:
+        print("ERROR get_access_token:", e)
+        return
     token = get_access_token(athlete_id)
     headers = {"Authorization": f"Bearer {token}"}
     a = requests.get(f"{STRAVA_API}/activities/{activity_id}", headers=headers).json()
@@ -91,13 +102,18 @@ def summarize_week(acts):
     return {"duration": dur, "elev": elev}
 
 def ask_openai(activity, week):
+    print("FETCHING activity/details/streams ... ok")
     text = f"""
 Ты спортивный тренер. 
 Дай краткий анализ активности и рекомендацию на завтра.
 Активность: {json.dumps(activity, ensure_ascii=False)[:1000]}
 Неделя: {week}
 """
+    
     r = requests.post("https://api.openai.com/v1/responses",
         headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type":"application/json"},
         json={"model": "gpt-5.1-mini", "input": text})
+  print("==== COACH ADVICE ====")
+print(advice)
+print("======================")
     return r.json().get("output_text", "")
